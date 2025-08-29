@@ -1,10 +1,20 @@
 import { useState } from "react";
-import { Leaf, Moon, Sun, Menu, X } from "lucide-react";
+import { Leaf, Moon, Sun, Menu, X, User, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/auth-context";
+import { useLanguage } from "@/contexts/language-context";
+import AuthModal from "@/components/auth/auth-modal";
+import LanguageSelector from "@/components/language-selector";
 
 export default function Header() {
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
+  const { user, logout } = useAuth();
+  const { t } = useLanguage();
 
   const toggleTheme = () => {
     const newTheme = !isDark;
@@ -30,8 +40,8 @@ export default function Header() {
               <Leaf className="text-primary-foreground text-lg" data-testid="logo-icon" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground" data-testid="site-title">MediPlant AI</h1>
-              <p className="text-xs text-muted-foreground">Traditional Plant Knowledge</p>
+              <h1 className="text-xl font-bold text-foreground" data-testid="site-title">{t('site.title')}</h1>
+              <p className="text-xs text-muted-foreground">{t('site.tagline')}</p>
             </div>
           </div>
           
@@ -41,32 +51,108 @@ export default function Header() {
               className="text-foreground hover:text-primary font-medium transition-colors"
               data-testid="nav-identify"
             >
-              Identify
+              {t('nav.identify')}
             </button>
             <button 
               onClick={() => scrollToSection('knowledge')}
               className="text-foreground hover:text-primary font-medium transition-colors"
               data-testid="nav-knowledge"
             >
-              Knowledge Base
+              {t('nav.knowledge')}
             </button>
             <button 
               onClick={() => scrollToSection('contribute')}
               className="text-foreground hover:text-primary font-medium transition-colors"
               data-testid="nav-contribute"
             >
-              Contribute
+              {t('nav.contribute')}
             </button>
             <button 
               onClick={() => scrollToSection('community')}
               className="text-foreground hover:text-primary font-medium transition-colors"
               data-testid="nav-community"
             >
-              Community
+              {t('nav.community')}
             </button>
           </nav>
           
           <div className="flex items-center space-x-4">
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex items-center space-x-2" data-testid="user-menu">
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">{user.name}</span>
+                    {user.isAdmin && (
+                      <Badge variant="secondary" className="ml-2 text-xs">Admin</Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem className="flex items-center space-x-2">
+                    <User className="h-4 w-4" />
+                    <div className="flex flex-col">
+                      <span className="font-medium">{user.name}</span>
+                      <span className="text-xs text-muted-foreground">{user.email}</span>
+                    </div>
+                  </DropdownMenuItem>
+                  {user.badges && user.badges.length > 0 && (
+                    <DropdownMenuItem className="flex flex-wrap gap-1">
+                      {user.badges.map((badge) => (
+                        <Badge key={badge} variant="outline" className="text-xs">
+                          {badge}
+                        </Badge>
+                      ))}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="flex items-center space-x-2">
+                    <Settings className="h-4 w-4" />
+                    <span>Profile Settings</span>
+                  </DropdownMenuItem>
+                  {user.isAdmin && (
+                    <DropdownMenuItem className="flex items-center space-x-2" data-testid="admin-panel-link">
+                      <Settings className="h-4 w-4" />
+                      <span>Admin Panel</span>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={logout}
+                    className="flex items-center space-x-2 text-destructive focus:text-destructive"
+                    data-testid="logout-button"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Sign Out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setAuthModalTab('login');
+                    setIsAuthModalOpen(true);
+                  }}
+                  data-testid="login-button"
+                >
+                  {t('auth.signIn')}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setAuthModalTab('register');
+                    setIsAuthModalOpen(true);
+                  }}
+                  data-testid="register-button"
+                >
+                  {t('auth.signUp')}
+                </Button>
+              </div>
+            )}
+            
+            <LanguageSelector />
+            
             <Button
               variant="outline"
               size="icon"
@@ -123,6 +209,12 @@ export default function Header() {
           </div>
         )}
       </div>
+      
+      <AuthModal 
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        defaultTab={authModalTab}
+      />
     </header>
   );
 }

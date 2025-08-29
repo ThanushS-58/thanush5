@@ -8,7 +8,13 @@ import {
   type PlantImage,
   type InsertPlantImage,
   type Identification,
-  type InsertIdentification
+  type InsertIdentification,
+  type Discussion,
+  type InsertDiscussion,
+  type VoiceRecording,
+  type InsertVoiceRecording,
+  type Notification,
+  type InsertNotification
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -40,6 +46,29 @@ export interface IStorage {
   // Identification operations
   createIdentification(identification: InsertIdentification): Promise<Identification>;
   getRecentIdentifications(limit?: number): Promise<Identification[]>;
+  getUnknownIdentifications(): Promise<Identification[]>;
+  
+  // Discussion operations
+  createDiscussion(discussion: InsertDiscussion): Promise<Discussion>;
+  getDiscussionsByIdentification(identificationId: string): Promise<Discussion[]>;
+  updateDiscussionResolution(id: string, isResolved: boolean): Promise<Discussion | undefined>;
+  
+  // Voice recording operations
+  createVoiceRecording(recording: InsertVoiceRecording): Promise<VoiceRecording>;
+  getVoiceRecordingsByContribution(contributionId: string): Promise<VoiceRecording[]>;
+  
+  // Notification operations
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  getNotificationsByUser(userId: string): Promise<Notification[]>;
+  updateNotificationStatus(id: string, status: string): Promise<Notification | undefined>;
+  
+  // User badge operations
+  addUserBadge(userId: string, badge: string): Promise<User | undefined>;
+  updateUserContributionCount(userId: string): Promise<User | undefined>;
+  
+  // Advanced search
+  searchPlantsBySymptom(symptom: string): Promise<Plant[]>;
+  searchPlantsByRegion(region: string): Promise<Plant[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -48,6 +77,9 @@ export class MemStorage implements IStorage {
   private contributions: Map<string, Contribution>;
   private plantImages: Map<string, PlantImage>;
   private identifications: Map<string, Identification>;
+  private discussions: Map<string, Discussion>;
+  private voiceRecordings: Map<string, VoiceRecording>;
+  private notifications: Map<string, Notification>;
 
   constructor() {
     this.users = new Map();
@@ -55,6 +87,9 @@ export class MemStorage implements IStorage {
     this.contributions = new Map();
     this.plantImages = new Map();
     this.identifications = new Map();
+    this.discussions = new Map();
+    this.voiceRecordings = new Map();
+    this.notifications = new Map();
 
     // Initialize with some sample data
     this.initializeSampleData();
@@ -68,6 +103,9 @@ export class MemStorage implements IStorage {
       email: "maya@example.com",
       name: "Dr. Maya Patel",
       isAdmin: false,
+      badges: ["Expert Contributor", "First Plant"],
+      contributionCount: 5,
+      language: "en",
       createdAt: new Date(),
     };
     
@@ -77,11 +115,27 @@ export class MemStorage implements IStorage {
       email: "ravi@example.com",
       name: "Ravi Kumar",
       isAdmin: false,
+      badges: ["Community Helper"],
+      contributionCount: 3,
+      language: "en",
+      createdAt: new Date(),
+    };
+    
+    const adminUser: User = {
+      id: "user-admin",
+      username: "admin",
+      email: "admin@mediplant.ai",
+      name: "System Admin",
+      isAdmin: true,
+      badges: ["Administrator"],
+      contributionCount: 0,
+      language: "en",
       createdAt: new Date(),
     };
 
     this.users.set(user1.id, user1);
     this.users.set(user2.id, user2);
+    this.users.set(adminUser.id, adminUser);
 
     // Create sample plants
     const plants: Plant[] = [
@@ -153,6 +207,30 @@ export class MemStorage implements IStorage {
     ];
 
     contributions.forEach(contrib => this.contributions.set(contrib.id, contrib));
+    
+    // Create sample discussions for unknown plants
+    const discussions: Discussion[] = [
+      {
+        id: "discussion-1",
+        identificationId: "unknown-plant-1",
+        userId: user1.id,
+        userRole: "expert",
+        content: "This looks like it could be a variety of mint. The serrated leaves and square stem are characteristic.",
+        isResolved: false,
+        createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+      },
+      {
+        id: "discussion-2",
+        identificationId: "unknown-plant-1",
+        userId: user2.id,
+        userRole: "user",
+        content: "Thanks for the input! It does smell minty when crushed. Found it growing wild near a stream.",
+        isResolved: false,
+        createdAt: new Date(Date.now() - 30 * 60 * 1000),
+      },
+    ];
+    
+    discussions.forEach(discussion => this.discussions.set(discussion.id, discussion));
   }
 
   // User operations
@@ -170,6 +248,9 @@ export class MemStorage implements IStorage {
       ...insertUser, 
       id, 
       isAdmin: false,
+      badges: [],
+      contributionCount: 0,
+      language: insertUser.language || "en",
       createdAt: new Date() 
     };
     this.users.set(id, user);
@@ -212,6 +293,12 @@ export class MemStorage implements IStorage {
     const plant: Plant = { 
       ...insertPlant, 
       id, 
+      scientificName: insertPlant.scientificName || null,
+      description: insertPlant.description || null,
+      preparation: insertPlant.preparation || null,
+      location: insertPlant.location || null,
+      imageUrl: insertPlant.imageUrl || null,
+      contributorId: insertPlant.contributorId || null,
       verificationStatus: "pending",
       createdAt: new Date() 
     };
@@ -251,6 +338,8 @@ export class MemStorage implements IStorage {
     const contribution: Contribution = { 
       ...insertContribution, 
       id, 
+      plantId: insertContribution.plantId || null,
+      contributorId: insertContribution.contributorId || null,
       status: "pending",
       createdAt: new Date() 
     };
@@ -280,6 +369,8 @@ export class MemStorage implements IStorage {
     const image: PlantImage = { 
       ...insertImage, 
       id, 
+      plantId: insertImage.plantId || null,
+      description: insertImage.description || null,
       createdAt: new Date() 
     };
     this.plantImages.set(id, image);
@@ -292,6 +383,9 @@ export class MemStorage implements IStorage {
     const identification: Identification = { 
       ...insertIdentification, 
       id, 
+      plantId: insertIdentification.plantId || null,
+      userId: insertIdentification.userId || null,
+      isUnknown: insertIdentification.isUnknown || false,
       createdAt: new Date() 
     };
     this.identifications.set(id, identification);
@@ -302,6 +396,153 @@ export class MemStorage implements IStorage {
     return Array.from(this.identifications.values())
       .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime())
       .slice(0, limit);
+  }
+  
+  async getUnknownIdentifications(): Promise<Identification[]> {
+    return Array.from(this.identifications.values())
+      .filter(identification => identification.isUnknown)
+      .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime());
+  }
+  
+  // Discussion operations
+  async createDiscussion(insertDiscussion: InsertDiscussion): Promise<Discussion> {
+    const id = randomUUID();
+    const discussion: Discussion = { 
+      ...insertDiscussion, 
+      id, 
+      identificationId: insertDiscussion.identificationId || null,
+      userId: insertDiscussion.userId || null,
+      userRole: insertDiscussion.userRole || "user",
+      isResolved: false,
+      createdAt: new Date() 
+    };
+    this.discussions.set(id, discussion);
+    return discussion;
+  }
+  
+  async getDiscussionsByIdentification(identificationId: string): Promise<Discussion[]> {
+    return Array.from(this.discussions.values())
+      .filter(discussion => discussion.identificationId === identificationId)
+      .sort((a, b) => a.createdAt!.getTime() - b.createdAt!.getTime());
+  }
+  
+  async updateDiscussionResolution(id: string, isResolved: boolean): Promise<Discussion | undefined> {
+    const discussion = this.discussions.get(id);
+    if (discussion) {
+      discussion.isResolved = isResolved;
+      this.discussions.set(id, discussion);
+      return discussion;
+    }
+    return undefined;
+  }
+  
+  // Voice recording operations
+  async createVoiceRecording(insertRecording: InsertVoiceRecording): Promise<VoiceRecording> {
+    const id = randomUUID();
+    const recording: VoiceRecording = { 
+      ...insertRecording, 
+      id, 
+      contributionId: insertRecording.contributionId || null,
+      transcription: insertRecording.transcription || null,
+      language: insertRecording.language || "en",
+      duration: insertRecording.duration || null,
+      createdAt: new Date() 
+    };
+    this.voiceRecordings.set(id, recording);
+    return recording;
+  }
+  
+  async getVoiceRecordingsByContribution(contributionId: string): Promise<VoiceRecording[]> {
+    return Array.from(this.voiceRecordings.values())
+      .filter(recording => recording.contributionId === contributionId)
+      .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime());
+  }
+  
+  // Notification operations
+  async createNotification(insertNotification: InsertNotification): Promise<Notification> {
+    const id = randomUUID();
+    const notification: Notification = { 
+      ...insertNotification, 
+      id, 
+      userId: insertNotification.userId || null,
+      plantId: insertNotification.plantId || null,
+      status: "pending",
+      createdAt: new Date() 
+    };
+    this.notifications.set(id, notification);
+    return notification;
+  }
+  
+  async getNotificationsByUser(userId: string): Promise<Notification[]> {
+    return Array.from(this.notifications.values())
+      .filter(notification => notification.userId === userId)
+      .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime());
+  }
+  
+  async updateNotificationStatus(id: string, status: string): Promise<Notification | undefined> {
+    const notification = this.notifications.get(id);
+    if (notification) {
+      notification.status = status;
+      this.notifications.set(id, notification);
+      return notification;
+    }
+    return undefined;
+  }
+  
+  // User badge operations
+  async addUserBadge(userId: string, badge: string): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (user) {
+      if (!user.badges?.includes(badge)) {
+        user.badges = [...(user.badges || []), badge];
+        this.users.set(userId, user);
+      }
+      return user;
+    }
+    return undefined;
+  }
+  
+  async updateUserContributionCount(userId: string): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (user) {
+      user.contributionCount = (user.contributionCount || 0) + 1;
+      this.users.set(userId, user);
+      
+      // Award badges based on contribution count
+      if (user.contributionCount === 1) {
+        await this.addUserBadge(userId, "First Contribution");
+      } else if (user.contributionCount === 5) {
+        await this.addUserBadge(userId, "Active Contributor");
+      } else if (user.contributionCount === 10) {
+        await this.addUserBadge(userId, "Expert Contributor");
+      }
+      
+      return user;
+    }
+    return undefined;
+  }
+  
+  // Advanced search
+  async searchPlantsBySymptom(symptom: string): Promise<Plant[]> {
+    const lowercaseSymptom = symptom.toLowerCase();
+    return Array.from(this.plants.values())
+      .filter(plant => 
+        plant.verificationStatus === "verified" && (
+          plant.uses.toLowerCase().includes(lowercaseSymptom) ||
+          plant.description?.toLowerCase().includes(lowercaseSymptom)
+        )
+      )
+      .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime());
+  }
+  
+  async searchPlantsByRegion(region: string): Promise<Plant[]> {
+    const lowercaseRegion = region.toLowerCase();
+    return Array.from(this.plants.values())
+      .filter(plant => 
+        plant.verificationStatus === "verified" && 
+        plant.location?.toLowerCase().includes(lowercaseRegion)
+      )
+      .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime());
   }
 }
 

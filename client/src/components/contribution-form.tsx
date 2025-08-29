@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, Mic, Send } from "lucide-react";
+import { Upload, Send, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertContributionSchema, insertPlantSchema } from "@shared/schema";
 import { z } from "zod";
+import VoiceRecorder from "@/components/voice-recorder";
 
 const contributionFormSchema = insertPlantSchema.extend({
   contributorName: z.string().min(1, "Name is required"),
@@ -21,7 +22,8 @@ type ContributionFormData = z.infer<typeof contributionFormSchema>;
 
 export default function ContributionForm() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [transcript, setTranscript] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -30,6 +32,8 @@ export default function ContributionForm() {
     register,
     handleSubmit,
     reset,
+    getValues,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ContributionFormData>({
     resolver: zodResolver(contributionFormSchema),
@@ -126,13 +130,24 @@ export default function ContributionForm() {
     }
   };
 
-  const toggleRecording = () => {
-    setIsRecording(!isRecording);
-    // TODO: Implement actual voice recording functionality
-    toast({
-      title: isRecording ? "Recording Stopped" : "Recording Started",
-      description: isRecording ? "Voice recording stopped" : "Start speaking about the plant...",
-    });
+  const handleRecordingComplete = (audioBlob: Blob, transcriptText?: string) => {
+    setAudioBlob(audioBlob);
+    if (transcriptText) {
+      setTranscript(transcriptText);
+      // Auto-fill form fields from transcript if they're empty
+      const words = transcriptText.toLowerCase();
+      if (!getValues('uses') && words.includes('use')) {
+        // Extract uses information from transcript
+        const usesMatch = transcriptText.match(/(?:use|treat|heal|cure)[sd]?\s+(?:for|to)?\s+([^.]+)/i);
+        if (usesMatch) {
+          setValue('uses', usesMatch[1].trim());
+        }
+      }
+    }
+  };
+  
+  const handleTranscriptChange = (newTranscript: string) => {
+    setTranscript(newTranscript);
   };
 
   return (
@@ -280,30 +295,35 @@ export default function ContributionForm() {
                 </div>
               </div>
               
-              <Card className="bg-muted rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <Mic className="text-accent text-lg mt-1" />
-                  <div className="flex-1">
-                    <h4 className="font-medium text-foreground mb-2">Voice Contribution</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Prefer to speak? Record your knowledge and we'll transcribe it.
-                    </p>
+              <VoiceRecorder 
+                onRecordingComplete={handleRecordingComplete}
+                onTranscriptChange={handleTranscriptChange}
+                className="bg-muted rounded-lg"
+              />
+              
+              {transcript && (
+                <Card className="bg-primary/5 border-primary/20">
+                  <CardContent className="p-4">
+                    <h5 className="font-medium text-foreground mb-2">Transcribed Content:</h5>
+                    <p className="text-sm text-muted-foreground mb-3">{transcript}</p>
                     <Button
                       type="button"
-                      onClick={toggleRecording}
-                      className={`flex items-center space-x-2 ${
-                        isRecording 
-                          ? 'bg-destructive hover:bg-destructive/90' 
-                          : 'bg-accent hover:bg-accent/90'
-                      }`}
-                      data-testid="voice-recording-button"
+                      onClick={() => {
+                        if (!getValues('uses')) {
+                          setValue('uses', transcript);
+                        } else {
+                          setValue('uses', getValues('uses') + '\n\n' + transcript);
+                        }
+                      }}
+                      variant="outline"
+                      size="sm"
+                      data-testid="apply-transcript-button"
                     >
-                      <Mic className="h-4 w-4" />
-                      <span>{isRecording ? "Stop Recording" : "Start Recording"}</span>
+                      Apply to Form
                     </Button>
-                  </div>
-                </div>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
               
               <div className="flex items-center space-x-4">
                 <Button 
