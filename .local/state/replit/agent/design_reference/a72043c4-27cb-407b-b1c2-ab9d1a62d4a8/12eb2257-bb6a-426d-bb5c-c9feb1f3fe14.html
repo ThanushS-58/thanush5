@@ -1,0 +1,743 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediPlant AI - Traditional Plant Knowledge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    popover: {
+                        DEFAULT: "var(--popover)",
+                        foreground: "var(--popover-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                },
+                fontFamily: {
+                    sans: ["Inter", "system-ui", "sans-serif"],
+                }
+            },
+        }
+    };
+    </script>
+    <style>
+        :root {
+            --background: hsl(120 10% 98%);
+            --foreground: hsl(120 15% 15%);
+            --card: hsl(120 10% 100%);
+            --card-foreground: hsl(120 15% 15%);
+            --popover: hsl(120 10% 100%);
+            --popover-foreground: hsl(120 15% 15%);
+            --primary: hsl(142 76% 36%);
+            --primary-foreground: hsl(120 10% 98%);
+            --secondary: hsl(120 5% 64%);
+            --secondary-foreground: hsl(120 15% 15%);
+            --muted: hsl(120 5% 96%);
+            --muted-foreground: hsl(120 5% 45%);
+            --accent: hsl(25 95% 53%);
+            --accent-foreground: hsl(120 10% 98%);
+            --destructive: hsl(0 84% 60%);
+            --destructive-foreground: hsl(120 10% 98%);
+            --border: hsl(120 10% 91%);
+            --input: hsl(120 10% 91%);
+            --ring: hsl(142 76% 36%);
+            --radius: 0.75rem;
+        }
+
+        .dark {
+            --background: hsl(120 15% 8%);
+            --foreground: hsl(120 10% 95%);
+            --card: hsl(120 15% 10%);
+            --card-foreground: hsl(120 10% 95%);
+            --popover: hsl(120 15% 10%);
+            --popover-foreground: hsl(120 10% 95%);
+            --primary: hsl(142 76% 36%);
+            --primary-foreground: hsl(120 10% 98%);
+            --secondary: hsl(120 5% 20%);
+            --secondary-foreground: hsl(120 10% 95%);
+            --muted: hsl(120 5% 15%);
+            --muted-foreground: hsl(120 5% 65%);
+            --accent: hsl(25 95% 53%);
+            --accent-foreground: hsl(120 10% 98%);
+            --destructive: hsl(0 84% 60%);
+            --destructive-foreground: hsl(120 10% 98%);
+            --border: hsl(120 10% 18%);
+            --input: hsl(120 10% 18%);
+            --ring: hsl(142 76% 36%);
+        }
+
+        .upload-area {
+            background: linear-gradient(135deg, var(--muted) 0%, var(--card) 100%);
+            border: 2px dashed var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--card) 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 3s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .plant-card {
+            transition: transform 0.2s ease, shadow 0.2s ease;
+        }
+
+        .plant-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .audio-button {
+            transition: all 0.2s ease;
+        }
+
+        .audio-button:hover {
+            background-color: var(--accent);
+            transform: scale(1.05);
+        }
+
+        .search-container {
+            position: relative;
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-background text-foreground">
+    <!-- @COMPONENT: Header [navigation and branding] -->
+    <header class="bg-card border-b border-border shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                        <i class="fas fa-leaf text-primary-foreground text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-foreground">MediPlant AI</h1>
+                        <p class="text-xs text-muted-foreground">Traditional Plant Knowledge</p>
+                    </div>
+                </div>
+                
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="#identify" class="text-foreground hover:text-primary font-medium transition-colors">Identify</a>
+                    <a href="#knowledge" class="text-foreground hover:text-primary font-medium transition-colors">Knowledge Base</a>
+                    <a href="#contribute" class="text-foreground hover:text-primary font-medium transition-colors">Contribute</a>
+                    <a href="#community" class="text-foreground hover:text-primary font-medium transition-colors">Community</a>
+                </nav>
+                
+                <div class="flex items-center space-x-4">
+                    <button class="p-2 rounded-lg bg-muted hover:bg-secondary transition-colors" data-event="click:toggleTheme">
+                        <i class="fas fa-moon text-muted-foreground"></i>
+                    </button>
+                    <button class="md:hidden p-2 rounded-lg bg-muted hover:bg-secondary transition-colors" data-event="click:toggleMobileMenu">
+                        <i class="fas fa-bars text-muted-foreground"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: Header -->
+
+    <main class="min-h-screen">
+        <!-- @COMPONENT: Hero Section [main plant identification interface] -->
+        <section id="identify" class="py-16 px-4">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-4xl md:text-5xl font-bold text-foreground mb-6">
+                    Discover Medicinal Plants with AI
+                </h2>
+                <p class="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
+                    Upload a photo of any plant to identify it and learn about its traditional medicinal uses from community knowledge.
+                </p>
+                
+                <!-- @FUNCTIONALITY: File upload should handle image processing and ML model inference -->
+                <div class="upload-area rounded-2xl p-12 mb-8 cursor-pointer" data-implementation="FileUpload component with drag-and-drop">
+                    <div class="flex flex-col items-center">
+                        <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-camera text-primary text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-foreground mb-2">Upload Plant Photo</h3>
+                        <p class="text-muted-foreground mb-4">Drop an image here or click to browse</p>
+                        <button class="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors">
+                            Choose File
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- @STATE: uploadedImage:File|null = null, isProcessing:boolean = false -->
+                <div class="hidden bg-card border border-border rounded-xl p-6" data-mock="true" data-bind="identificationResult">
+                    <div class="flex items-start space-x-4">
+                        <!-- High-resolution image of Aloe Vera plant with distinctive thick, fleshy leaves -->
+                        <img src="https://images.unsplash.com/photo-1593113598332-cd288d649433?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=300" 
+                             alt="Identified medicinal plant" 
+                             class="w-24 h-24 rounded-lg object-cover" data-mock-image="true">
+                        <div class="flex-1 text-left">
+                            <h4 class="text-xl font-semibold text-foreground mb-2" data-bind="plant.name">Aloe Vera</h4>
+                            <p class="text-muted-foreground mb-4" data-bind="plant.scientificName">Aloe barbadensis miller</p>
+                            <div class="flex items-center space-x-2">
+                                <button class="audio-button bg-accent text-accent-foreground px-4 py-2 rounded-lg font-medium flex items-center space-x-2" 
+                                        data-event="click:playAudio" data-implementation="TTS integration">
+                                    <i class="fas fa-play"></i>
+                                    <span>Listen</span>
+                                </button>
+                                <span class="text-sm text-muted-foreground">Confidence: 95%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: Hero Section -->
+
+        <!-- @COMPONENT: Search Section [knowledge base search] -->
+        <section class="bg-muted/30 py-16 px-4">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-12">
+                    <h3 class="text-3xl font-bold text-foreground mb-4">Search Plant Knowledge</h3>
+                    <p class="text-muted-foreground">Explore our community-driven database of medicinal plants</p>
+                </div>
+                
+                <div class="search-container max-w-2xl mx-auto mb-12">
+                    <div class="relative">
+                        <input type="text" 
+                               placeholder="Search by plant name, medicinal use, or symptom..." 
+                               class="w-full px-6 py-4 pr-12 bg-card border border-border rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                               data-event="input:handleSearch">
+                        <button class="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-primary">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- @MAP: searchResults.map(result => ( -->
+                    <div class="search-results hidden" data-mock="true">
+                        <div class="p-3 hover:bg-muted cursor-pointer border-b border-border">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-leaf text-primary"></i>
+                                <div>
+                                    <p class="font-medium text-foreground">Turmeric</p>
+                                    <p class="text-sm text-muted-foreground">Anti-inflammatory, wound healing</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+                
+                <!-- Featured Plants Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- @MAP: featuredPlants.map(plant => ( -->
+                    <div class="plant-card bg-card border border-border rounded-xl overflow-hidden">
+                        <!-- Close-up image of turmeric root showing the characteristic orange-yellow interior -->
+                        <img src="https://pixabay.com/get/gfd0600100d35f254abb632d6a18ef392246cd4e41a07b2079db9e89e8d8391b83f1b095908c63defac06990a9341927c7c7490ed0ff66c2dbe83a3ebedc1c150_1280.jpg" 
+                             alt="Turmeric root with distinctive golden color" 
+                             class="w-full h-48 object-cover" data-mock-image="true">
+                        <div class="p-6">
+                            <h4 class="text-xl font-semibold text-foreground mb-2" data-bind="plant.name">Turmeric</h4>
+                            <p class="text-sm text-muted-foreground mb-4" data-bind="plant.scientificName">Curcuma longa</p>
+                            <div class="space-y-3">
+                                <div>
+                                    <span class="text-sm font-medium text-foreground">Uses:</span>
+                                    <p class="text-sm text-muted-foreground" data-bind="plant.uses">Anti-inflammatory, wound healing, digestive aid</p>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <button class="audio-button bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm flex items-center space-x-2"
+                                            data-event="click:playPlantInfo" data-implementation="TTS for plant information">
+                                        <i class="fas fa-volume-up"></i>
+                                        <span>Listen</span>
+                                    </button>
+                                    <span class="text-xs text-muted-foreground">3 contributors</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="plant-card bg-card border border-border rounded-xl overflow-hidden">
+                        <!-- Fresh neem leaves on branches showing the compound leaf structure -->
+                        <img src="https://pixabay.com/get/g4b14ff5040da857a8c8e18be941879f96a77b47ebd13cd7e7285326002d24ce59ccd2f93f1c70c0a9f19fe843cf08c9a62039a22d4185b58e7eaa887df761683_1280.jpg" 
+                             alt="Fresh neem leaves showing natural compound structure" 
+                             class="w-full h-48 object-cover" data-mock-image="true">
+                        <div class="p-6">
+                            <h4 class="text-xl font-semibold text-foreground mb-2" data-bind="plant.name">Neem</h4>
+                            <p class="text-sm text-muted-foreground mb-4" data-bind="plant.scientificName">Azadirachta indica</p>
+                            <div class="space-y-3">
+                                <div>
+                                    <span class="text-sm font-medium text-foreground">Uses:</span>
+                                    <p class="text-sm text-muted-foreground" data-bind="plant.uses">Antibacterial, skin conditions, pest control</p>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <button class="audio-button bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm flex items-center space-x-2"
+                                            data-event="click:playPlantInfo">
+                                        <i class="fas fa-volume-up"></i>
+                                        <span>Listen</span>
+                                    </button>
+                                    <span class="text-xs text-muted-foreground">7 contributors</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="plant-card bg-card border border-border rounded-xl overflow-hidden">
+                        <!-- Fresh ginger root and sliced pieces showing the fibrous interior -->
+                        <img src="https://pixabay.com/get/gc15f5f779445393af0d8086ddc070c14124252001169bf347f70bba31bad64f7dced1482f89ef6a5485cdc50276ac6c4ffc982a40c8a61d3b1ece03aa7339154_1280.jpg" 
+                             alt="Fresh ginger root with sliced pieces showing interior" 
+                             class="w-full h-48 object-cover" data-mock-image="true">
+                        <div class="p-6">
+                            <h4 class="text-xl font-semibold text-foreground mb-2" data-bind="plant.name">Ginger</h4>
+                            <p class="text-sm text-muted-foreground mb-4" data-bind="plant.scientificName">Zingiber officinale</p>
+                            <div class="space-y-3">
+                                <div>
+                                    <span class="text-sm font-medium text-foreground">Uses:</span>
+                                    <p class="text-sm text-muted-foreground" data-bind="plant.uses">Nausea relief, digestive aid, cold remedy</p>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <button class="audio-button bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm flex items-center space-x-2"
+                                            data-event="click:playPlantInfo">
+                                        <i class="fas fa-volume-up"></i>
+                                        <span>Listen</span>
+                                    </button>
+                                    <span class="text-xs text-muted-foreground">5 contributors</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: Search Section -->
+
+        <!-- @COMPONENT: Contribution Section [knowledge submission interface] -->
+        <section id="contribute" class="py-16 px-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-12">
+                    <h3 class="text-3xl font-bold text-foreground mb-4">Share Your Knowledge</h3>
+                    <p class="text-muted-foreground">Help preserve traditional medicinal plant wisdom by contributing to our community database</p>
+                </div>
+                
+                <div class="bg-card border border-border rounded-xl p-8">
+                    <form class="space-y-6" data-event="submit:handleContribution" data-implementation="Form validation and submission">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-foreground mb-2">Plant Name</label>
+                                <input type="text" 
+                                       class="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                       placeholder="Common or local name" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-foreground mb-2">Scientific Name</label>
+                                <input type="text" 
+                                       class="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                       placeholder="Botanical name (if known)">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-foreground mb-2">Medicinal Uses</label>
+                            <textarea rows="4" 
+                                      class="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                      placeholder="Describe traditional uses, preparation methods, and treatments..." required></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-foreground mb-2">Plant Images</label>
+                            <div class="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
+                                <i class="fas fa-images text-3xl text-muted-foreground mb-4"></i>
+                                <p class="text-muted-foreground">Drop images here or click to upload</p>
+                                <p class="text-sm text-muted-foreground mt-2">Multiple angles recommended</p>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-foreground mb-2">Your Name</label>
+                                <input type="text" 
+                                       class="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                       placeholder="For attribution" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-foreground mb-2">Location</label>
+                                <input type="text" 
+                                       class="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                       placeholder="Region where plant is found">
+                            </div>
+                        </div>
+                        
+                        <div class="bg-muted rounded-lg p-4">
+                            <div class="flex items-start space-x-3">
+                                <i class="fas fa-microphone text-accent text-lg mt-1"></i>
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-foreground mb-2">Voice Contribution</h4>
+                                    <p class="text-sm text-muted-foreground mb-3">Prefer to speak? Record your knowledge and we'll transcribe it.</p>
+                                    <button type="button" 
+                                            class="bg-accent text-accent-foreground px-4 py-2 rounded-lg font-medium flex items-center space-x-2"
+                                            data-event="click:startRecording" data-implementation="ASR integration">
+                                        <i class="fas fa-record-vinyl"></i>
+                                        <span>Start Recording</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-4">
+                            <button type="submit" 
+                                    class="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors">
+                                Submit Contribution
+                            </button>
+                            <p class="text-sm text-muted-foreground">Contributions are reviewed before publishing</p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: Contribution Section -->
+
+        <!-- @COMPONENT: Community Section [recent contributions and stats] -->
+        <section id="community" class="bg-muted/30 py-16 px-4">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-12">
+                    <h3 class="text-3xl font-bold text-foreground mb-4">Community Impact</h3>
+                    <p class="text-muted-foreground">Together we're preserving traditional knowledge for future generations</p>
+                </div>
+                
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-primary mb-2" data-bind="stats.plantsIdentified">2,847</div>
+                        <p class="text-muted-foreground">Plants Identified</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-accent mb-2" data-bind="stats.contributors">156</div>
+                        <p class="text-muted-foreground">Contributors</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-primary mb-2" data-bind="stats.knowledgeEntries">834</div>
+                        <p class="text-muted-foreground">Knowledge Entries</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-accent mb-2" data-bind="stats.languagesSupported">12</div>
+                        <p class="text-muted-foreground">Languages</p>
+                    </div>
+                </div>
+                
+                <!-- Recent Contributions -->
+                <div class="bg-card border border-border rounded-xl p-8">
+                    <h4 class="text-xl font-semibold text-foreground mb-6">Recent Contributions</h4>
+                    <div class="space-y-6">
+                        <!-- @MAP: recentContributions.map(contribution => ( -->
+                        <div class="flex items-start space-x-4 p-4 bg-muted/50 rounded-lg" data-mock="true">
+                            <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-primary"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <span class="font-medium text-foreground" data-bind="contribution.author">Dr. Maya Patel</span>
+                                    <span class="text-sm text-muted-foreground">•</span>
+                                    <span class="text-sm text-muted-foreground" data-bind="contribution.timestamp">2 hours ago</span>
+                                </div>
+                                <p class="text-foreground mb-2">Added knowledge about <span class="font-medium text-primary" data-bind="contribution.plantName">Holy Basil (Tulsi)</span></p>
+                                <p class="text-sm text-muted-foreground" data-bind="contribution.summary">Traditional remedy for respiratory conditions and stress relief. Commonly used in Ayurvedic medicine.</p>
+                                <div class="flex items-center space-x-2 mt-3">
+                                    <span class="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs">Verified</span>
+                                    <button class="text-sm text-muted-foreground hover:text-primary transition-colors">
+                                        <i class="fas fa-thumbs-up mr-1"></i>12
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-4 p-4 bg-muted/50 rounded-lg" data-mock="true">
+                            <div class="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-accent"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <span class="font-medium text-foreground" data-bind="contribution.author">Ravi Kumar</span>
+                                    <span class="text-sm text-muted-foreground">•</span>
+                                    <span class="text-sm text-muted-foreground" data-bind="contribution.timestamp">5 hours ago</span>
+                                </div>
+                                <p class="text-foreground mb-2">Shared traditional use of <span class="font-medium text-primary" data-bind="contribution.plantName">Moringa leaves</span></p>
+                                <p class="text-sm text-muted-foreground" data-bind="contribution.summary">Nutritional powerhouse used for treating malnutrition. Leaves can be consumed fresh or dried.</p>
+                                <div class="flex items-center space-x-2 mt-3">
+                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">Under Review</span>
+                                    <button class="text-sm text-muted-foreground hover:text-primary transition-colors">
+                                        <i class="fas fa-thumbs-up mr-1"></i>8
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                        
+                        <div class="text-center pt-4">
+                            <button class="text-primary hover:text-primary/80 font-medium transition-colors">
+                                View All Contributions →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: Community Section -->
+
+        <!-- @COMPONENT: Admin Moderation Panel [basic moderation interface] -->
+        <section class="hidden bg-destructive/5 border-t border-destructive/20 py-8 px-4" data-role="admin">
+            <div class="max-w-4xl mx-auto">
+                <h4 class="text-lg font-semibold text-foreground mb-4 flex items-center">
+                    <i class="fas fa-shield-alt text-destructive mr-2"></i>
+                    Moderation Panel
+                </h4>
+                <div class="bg-card border border-border rounded-lg p-6">
+                    <div class="space-y-4">
+                        <!-- @MAP: pendingContributions.map(contribution => ( -->
+                        <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg" data-mock="true">
+                            <div>
+                                <p class="font-medium text-foreground" data-bind="contribution.plantName">Ashwagandha</p>
+                                <p class="text-sm text-muted-foreground">Submitted by <span data-bind="contribution.author">John Smith</span></p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button class="bg-primary text-primary-foreground px-3 py-1 rounded text-sm"
+                                        data-event="click:approveContribution">Approve</button>
+                                <button class="bg-destructive text-destructive-foreground px-3 py-1 rounded text-sm"
+                                        data-event="click:rejectContribution">Reject</button>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: Admin Moderation Panel -->
+    </main>
+
+    <!-- @COMPONENT: Footer [links and additional information] -->
+    <footer class="bg-card border-t border-border py-12 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                            <i class="fas fa-leaf text-primary-foreground"></i>
+                        </div>
+                        <span class="font-bold text-foreground">MediPlant AI</span>
+                    </div>
+                    <p class="text-sm text-muted-foreground">
+                        Preserving traditional medicinal plant knowledge through AI and community collaboration.
+                    </p>
+                </div>
+                
+                <div>
+                    <h5 class="font-semibold text-foreground mb-4">Features</h5>
+                    <ul class="space-y-2 text-sm text-muted-foreground">
+                        <li><a href="#identify" class="hover:text-primary transition-colors">Plant Identification</a></li>
+                        <li><a href="#knowledge" class="hover:text-primary transition-colors">Knowledge Base</a></li>
+                        <li><a href="#contribute" class="hover:text-primary transition-colors">Contribute</a></li>
+                        <li><a href="#community" class="hover:text-primary transition-colors">Community</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h5 class="font-semibold text-foreground mb-4">Support</h5>
+                    <ul class="space-y-2 text-sm text-muted-foreground">
+                        <li><a href="#" class="hover:text-primary transition-colors">Documentation</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">API Access</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h5 class="font-semibold text-foreground mb-4">Connect</h5>
+                    <div class="flex space-x-3">
+                        <a href="#" class="w-8 h-8 bg-muted rounded-lg flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="#" class="w-8 h-8 bg-muted rounded-lg flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-8 h-8 bg-muted rounded-lg flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors">
+                            <i class="fab fa-telegram"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-sm text-muted-foreground mb-4 md:mb-0">
+                    © 2024 MediPlant AI. Open source project for traditional knowledge preservation.
+                </p>
+                <div class="flex items-center space-x-4 text-sm text-muted-foreground">
+                    <span>Made with ❤️ for indigenous communities</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <!-- @END_COMPONENT: Footer -->
+
+    <script>
+        (function() {
+            // TODO: Implement business logic, API calls, and state management
+            
+            // Mock functionality for demonstration
+            let currentTheme = 'light';
+            let isRecording = false;
+            let uploadedFiles = [];
+
+            // Theme toggle functionality
+            function toggleTheme() {
+                currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+                document.documentElement.classList.toggle('dark');
+                console.log('Theme toggled to:', currentTheme);
+            }
+
+            // File upload simulation
+            function handleFileUpload(files) {
+                uploadedFiles = Array.from(files);
+                console.log('Files uploaded:', uploadedFiles.length);
+                // TODO: Process files and send to ML model
+            }
+
+            // Audio recording simulation
+            function toggleRecording() {
+                isRecording = !isRecording;
+                const button = document.querySelector('[data-event="click:startRecording"]');
+                if (button) {
+                    button.innerHTML = isRecording 
+                        ? '<i class="fas fa-stop"></i><span>Stop Recording</span>'
+                        : '<i class="fas fa-record-vinyl"></i><span>Start Recording</span>';
+                }
+                console.log('Recording:', isRecording);
+                // TODO: Implement ASR functionality
+            }
+
+            // TTS functionality simulation
+            function playAudio(text) {
+                console.log('Playing audio for:', text);
+                // TODO: Implement actual TTS using gTTS or Coqui TTS
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text || 'Sample plant information');
+                    speechSynthesis.speak(utterance);
+                }
+            }
+
+            // Search functionality
+            function handleSearch(query) {
+                console.log('Searching for:', query);
+                // TODO: Implement actual search logic
+                const searchResults = document.querySelector('.search-results');
+                if (searchResults && query.length > 2) {
+                    searchResults.classList.remove('hidden');
+                } else if (searchResults) {
+                    searchResults.classList.add('hidden');
+                }
+            }
+
+            // Event listener setup
+            document.addEventListener('click', function(e) {
+                const target = e.target.closest('[data-event]');
+                if (!target) return;
+
+                const eventData = target.getAttribute('data-event');
+                const [eventType, handler] = eventData.split(':');
+
+                if (eventType === 'click') {
+                    switch (handler) {
+                        case 'toggleTheme':
+                            toggleTheme();
+                            break;
+                        case 'startRecording':
+                            toggleRecording();
+                            break;
+                        case 'playAudio':
+                        case 'playPlantInfo':
+                            playAudio();
+                            break;
+                        case 'approveContribution':
+                            console.log('Contribution approved');
+                            target.closest('.flex').remove();
+                            break;
+                        case 'rejectContribution':
+                            console.log('Contribution rejected');
+                            target.closest('.flex').remove();
+                            break;
+                    }
+                }
+            });
+
+            // Search input handler
+            document.addEventListener('input', function(e) {
+                const target = e.target.closest('[data-event*="handleSearch"]');
+                if (target) {
+                    handleSearch(target.value);
+                }
+            });
+
+            // Form submission handler
+            document.addEventListener('submit', function(e) {
+                const target = e.target.closest('[data-event*="handleContribution"]');
+                if (target) {
+                    e.preventDefault();
+                    console.log('Form submitted');
+                    // TODO: Process form data and submit to backend
+                    alert('Thank you for your contribution! It will be reviewed shortly.');
+                }
+            });
+
+            console.log('MediPlant AI initialized');
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+Got it 👍 — you want a prompt you can use (in an AI code assistant or project builder) that clearly describes your project requirements and asks it to generate the system for you. Here’s a detailed master prompt you can reuse:
+
+
+---
+
+🚀 Prompt to Create the Medicinal Plant AI Project
+
+"I want to build a complete open-source AI-powered project for medicinal plant identification and traditional knowledge sharing. The system should:
+
+1. Core Functionality
+
+Accept an uploaded image of a plant/leaf/part from a user.
+
+Use CNN with transfer learning (e.g., ResNet, MobileNet, EfficientNet) to identify the medicinal plant.
+
+Provide the user with details like plant name, medicinal uses, and remedies.
+
+
+
+2. Interactive Voice Features
+
+Convert the plant details into speech output using free/open-source TTS (e.g., gTTS, Coqui TTS).
+
+Call or message the user via Asterisk PBX, FreeSWITCH, or Twilio alternative to speak the information.
+
+Allow users to ask queries by voice; use an ASR tool (e.g., Whisper) to transcribe speech into text, then respond back with AI-generated speech.
+
+
+
+3. Knowledge Contribution System
+
+Enable local healers and community members to contribute plant knowledge via text or voice.
+
+Use ASR for voice contributions, then store knowledge in a structured database.
+
+Add a moderation workflow so contributions can be validated before publishing.
+
+Build a knowledge base searchable by plant name, uses, or remedies.
+
+Recognize contributors with badges or highlights to encourage participation.
+
+
+
+4. Architecture & Tech Stack
+
+Frontend (mobile/web): React or Flutter for mobile, HTML/CSS/JS or React for web.
+
+Backend: Flask/Django or Node.js.
+
+Database: SQLite/PostgreSQL (free + open-source).
+
+ML/AI: PyTorch/TensorFlow for CNN + Whisper for ASR + gTTS/Coqui for TTS.
+
+Hosting: Render / Railway / Heroku (free tier).
+
+Containerization: Docker for portability.
+
+
+
+5. Extra Features
+
+Support for multilingual output (English + Indian regional languages).
+
+Interactive WhatsApp bot integration using open-source libraries.
+
+Ability to document unknown plants (if not identified, store the image + community discussion).
+
+Build a structured digital medicinal plant repository accessible to all.
+
+
+
+6. Project Scope
+
+Problem: Lack of accessible, structured documentation of medicinal plants and their uses.
+
+Solution: AI + community-driven knowledge sharing + free and open-source stack.
+
+Impact: Helps preserve indigenous wisdom, provides affordable healthcare awareness, and empowers rural communities.
+
+Future Scope: Expand to other biodiversity regions, integrate with IoT plant sensors, and add AR-based plant exploration.
+
+
+
+
+Now, generate a complete system design, folder structure, and starter code implementation with step-by-step instructions for setting up this project using only free and open-source tools."
+
+
+---
+
+👉 This single prompt will guide an AI coding tool (like me or GitHub Copilot, Cursor, etc.) to scaffold the entire system for you.
+
+Do you want me to adapt this prompt into a "step-by-step roadmap" (like Phase 1: dataset, Phase 2: model training, Phase 3: voice integration, etc.) so you can build it gradually?
